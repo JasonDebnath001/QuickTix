@@ -3,20 +3,35 @@ import { dummyBookingData } from "../assets/assets";
 import Loading from "../components/Loading";
 import BlurCircle from "../components/BlurCircle";
 import { dateFormat, timeFormat } from "../lib/timeFormat";
+import { useAppContext } from "../context/AppContext";
+import { Link } from "react-router-dom";
 
 const MyBookings = () => {
   const currency = import.meta.env.VITE_CURRENCY;
+  const { axios, getToken, user, imageBaseUrl } = useAppContext();
+
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const getMyBookings = () => {
-    setBookings(dummyBookingData);
+  const getMyBookings = async () => {
+    try {
+      const { data } = await axios.get("/api/user/bookings", {
+        headers: { Authorization: `Bearer ${await getToken()}` },
+      });
+      if (data.success) {
+        setBookings(data.bookings);
+      }
+    } catch (error) {
+      console.log(error);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
-    getMyBookings();
-  }, []);
+    if (user) {
+      getMyBookings();
+    }
+  }, [user]);
 
   return !loading ? (
     <main className="relative px-6 md:px-16 lg:px-40 pt-30 md:pt-40 min-h-[80vh] overflow-x-hidden">
@@ -34,7 +49,7 @@ const MyBookings = () => {
         >
           <figure className="flex flex-col md:flex-row">
             <img
-              src={item.show.movie.poster_path}
+              src={imageBaseUrl + item.show.movie.poster_path}
               alt="Movie"
               className="w-full md:w-45 max-w-[180px] aspect-video h-auto object-cover object-bottom rounded"
             />
@@ -55,9 +70,12 @@ const MyBookings = () => {
                 {item.amount}
               </p>
               {!item.isPaid && (
-                <button className="bg-primary px-4 py-1.5 mb-3 text-sm rounded-full font-medium cursor-pointer">
+                <Link
+                  to={item.paymentLink}
+                  className="bg-primary px-4 py-1.5 mb-3 text-sm rounded-full font-medium cursor-pointer"
+                >
                   Pay Now
-                </button>
+                </Link>
               )}
             </div>
             <section className="text-sm">
